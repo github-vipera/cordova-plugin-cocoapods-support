@@ -57,11 +57,22 @@ module.exports = function (context) {
     function parseConfigXml() {
 
         parser.parseString(fs.readFileSync('config.xml'), function (err, data) {
-
             if (data.widget.platform) {
                 console.log('Checking config.xml for pods.');
                 data.widget.platform.forEach(function (platform) {
                     if (platform.$.name === 'ios') {
+                        var podsConfig = (platform['pods-config'] || [])[0];
+                        if (podsConfig) {
+                            console.log('Pods Config found');
+                            iosMinVersion = maxVer(iosMinVersion, podsConfig.$ ? podsConfig.$['ios-min-version'] : iosMinVersion);
+                            useFrameworks = podsConfig.$ && podsConfig.$['use-frameworks'] === 'true' ? 'true' : useFrameworks;
+
+                            (podsConfig.source || []).forEach(function (podSource) {
+                                console.log('%s requires pod source: %s', podSource.$.url);
+                                newPods.sources[podSource.$.url] = true;
+                            });
+                        }
+
                         (platform.pod || []).forEach(function (pod) {
                             var name = pod.$.name || pod.$.id;
                             newPods.pods[name] = pod.$;
@@ -71,7 +82,7 @@ module.exports = function (context) {
                 });
             }
         });
-    }
+     }
 
     function parsePluginXmls() {
 
